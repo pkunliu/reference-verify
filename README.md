@@ -14,7 +14,7 @@
 - Distinguish continuous page ranges, eLocators, ACM article numbers, and PDF-local pages.
 - Verify conference `address` fields without guessing event locations.
 - Apply one canonical name to every occurrence of the same journal or conference.
-- Produce a verified CSV, corrected BibTeX, an XLSX with unresolved rows highlighted, and an audit report when needed.
+- Produce two corrected BibTeX variants—one with verified DOI/URL fields and one without them—plus a verified CSV, highlighted XLSX, and audit report when needed.
 
 ## Installation
 
@@ -64,6 +64,12 @@ Use $reference-verify to check whether each journal or conference has one
 consistent canonical name throughout this BibTeX file, and verify the address
 for every conference paper.
 ```
+
+### Generate both BibTeX variants
+
+The default workflow returns `*_with_doi_url.bib` and
+`*_without_doi_url.bib`. The files are identical except that the second omits
+all `doi` and `url` fields.
 
 ## Verification principles
 

@@ -101,7 +101,7 @@ def validate_venue_consistency(rows: list[dict[str, str]]) -> None:
         venues[venue_id] = venue
 
 
-def convert_row(row: dict[str, str]) -> str:
+def convert_row(row: dict[str, str], include_doi_url: bool) -> str:
     entry_type = choose_entry_type(row)
     lines = [f"@{entry_type}{{{clean(row['Key'])},"]
 
@@ -121,14 +121,14 @@ def convert_row(row: dict[str, str]) -> str:
     add_field(lines, "pages", normalize_pages(row.get("pages", "")))
     add_field(lines, "year", clean(row.get("year")) or clean(row.get("Original year")))
 
-    # The verifier only populates this field after DOI-title matching.
-    add_field(lines, "doi", clean(row.get("DOI")))
-
-    add_field(
-        lines,
-        "url",
-        clean(row.get("Official URL")) or clean(row.get("DOI URL")),
-    )
+    if include_doi_url:
+        # The verifier only populates this field after DOI-title matching.
+        add_field(lines, "doi", clean(row.get("DOI")))
+        add_field(
+            lines,
+            "url",
+            clean(row.get("Official URL")) or clean(row.get("DOI URL")),
+        )
 
     if entry_type in {"misc", "techreport"}:
         add_field(lines, "note", clean(row.get("Formal publication status")))
@@ -137,10 +137,35 @@ def convert_row(row: dict[str, str]) -> str:
     return "\n".join(lines)
 
 
+def validate_output(
+    output: str,
+    entries: list[str],
+    rows: list[dict[str, str]],
+    keys: list[str],
+    include_doi_url: bool,
+) -> None:
+    if re.search(r"^\s*(?:eprint|archiveprefix)\s*=", output, flags=re.I | re.M):
+        raise SystemExit("Generated BibTeX contains forbidden arXiv export fields.")
+    if not include_doi_url and re.search(
+        r"^\s*(?:doi|url)\s*=", output, flags=re.I | re.M
+    ):
+        raise SystemExit("DOI/URL-free BibTeX contains a doi or url field.")
+
+    generated_keys = re.findall(r"^@\w+\{([^,]+),", output, flags=re.M)
+    if generated_keys != keys:
+        raise SystemExit("Generated BibTeX order does not match CSV order.")
+
+    for row, entry in zip(rows, entries):
+        exact_title = f"title         = {{{row['Title']}}},"
+        if exact_title not in entry:
+            raise SystemExit(f"Title preservation failed for {row['Key']}.")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("csv_file", type=Path)
-    parser.add_argument("bib_file", type=Path)
+    parser.add_argument("bib_with_doi_url", type=Path)
+    parser.add_argument("bib_without_doi_url", type=Path)
     args = parser.parse_args()
 
     with args.csv_file.open("r", encoding="utf-8-sig", newline="") as handle:
@@ -155,22 +180,31 @@ def main() -> None:
 
     validate_venue_consistency(rows)
 
-    entries = [convert_row(row) for row in rows]
-    args.bib_file.write_text("\n\n".join(entries) + "\n", encoding="utf-8")
+    entries_with = [convert_row(row, include_doi_url=True) for row in rows]
+    entries_without = [convert_row(row, include_doi_url=False) for row in rows]
+    output_with = "\n\n".join(entries_with) + "\n"
+    output_without = "\n\n".join(entries_without) + "\n"
 
-    output = args.bib_file.read_text(encoding="utf-8")
-    if re.search(r"^\s*(?:eprint|archiveprefix)\s*=", output, flags=re.I | re.M):
-        raise SystemExit("Generated BibTeX contains forbidden arXiv export fields.")
-    generated_keys = re.findall(r"^@\w+\{([^,]+),", output, flags=re.M)
-    if generated_keys != keys:
-        raise SystemExit("Generated BibTeX order does not match CSV order.")
+    validate_output(output_with, entries_with, rows, keys, include_doi_url=True)
+    validate_output(
+        output_without, entries_without, rows, keys, include_doi_url=False
+    )
 
-    for row, entry in zip(rows, entries):
-        exact_title = f"title         = {{{row['Title']}}},"
-        if exact_title not in entry:
-            raise SystemExit(f"Title preservation failed for {row['Key']}.")
+    expected_without = re.sub(
+        r"^[ \t]*(?:doi|url)[ \t]*=[ \t]*\{.*\},[ \t]*(?:\n|$)",
+        "",
+        output_with,
+        flags=re.I | re.M,
+    )
+    if expected_without != output_without:
+        raise SystemExit("The two BibTeX variants differ beyond doi/url fields.")
 
-    print(f"Generated {len(entries)} BibTeX entries: {args.bib_file}")
+    args.bib_with_doi_url.write_text(output_with, encoding="utf-8")
+    args.bib_without_doi_url.write_text(output_without, encoding="utf-8")
+    print(
+        f"Generated {len(rows)} entries in each BibTeX variant: "
+        f"{args.bib_with_doi_url} and {args.bib_without_doi_url}"
+    )
 
 
 if __name__ == "__main__":

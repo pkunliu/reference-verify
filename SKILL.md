@@ -1,6 +1,6 @@
 ---
 name: reference-verify
-description: Strictly verify academic references, formal publication sources, canonical journal and conference names, conference locations, page ranges, published versions of preprints, and DOI-title consistency. Use for BibTeX or reference audits that must preserve every input title exactly, use one consistent name for each venue, require an address for each conference paper, and export ordered CSV, XLSX, and corrected BibTeX artifacts.
+description: Strictly verify academic references, formal publication sources, canonical journal and conference names, conference locations, page ranges, published versions of preprints, and DOI-title consistency. Use for BibTeX or reference audits that must preserve every input title exactly, use one consistent name for each venue, require an address for each conference paper, and export ordered CSV, XLSX, plus corrected BibTeX variants with and without DOI/URL fields.
 ---
 
 # Reference Verify
@@ -34,6 +34,7 @@ Use this skill whenever the user asks to:
 13. Every verified conference paper must include a verified `address`; do not invent a location from the venue name or year.
 14. Use exactly one verified canonical `journal` or `booktitle` spelling for every shared venue identity across the complete input.
 15. Represent an arXiv-only record as `journal = {arXiv preprint arXiv:ARXIV_ID}`; do not emit `eprint` or `archivePrefix` fields.
+16. Generate both DOI/URL-inclusive and DOI/URL-free corrected BibTeX variants by default.
 
 ## Accepted inputs
 
@@ -279,12 +280,18 @@ For large files:
 
 ## Default user-facing result
 
-State the total records processed, number with verified formal sources, number with accepted DOI values, number of page corrections, unresolved cases, confirmation that titles were unchanged, and provide a link to the CSV.
+State the total records processed, number with verified formal sources, number with accepted DOI values, number of page corrections, unresolved cases, confirmation that titles were unchanged, and provide links to the CSV and both BibTeX variants.
 
 
-## Mandatory corrected BibTeX output
+## Mandatory corrected BibTeX outputs
 
-In addition to the verified CSV, generate a corrected `.bib` file by default.
+In addition to the verified CSV, generate two corrected `.bib` files by default:
+
+- `*_with_doi_url.bib`: include verified `doi` and `url` fields;
+- `*_without_doi_url.bib`: omit every `doi` and `url` field.
+
+Keep all other fields, entry types, keys, titles, and entry order identical
+between the two variants.
 
 ### CSV-to-BibTeX rules
 
@@ -307,8 +314,8 @@ In addition to the verified CSV, generate a corrected `.bib` file by default.
    - `number`;
    - `pages`;
    - `year`;
-   - `doi`;
-   - `url`;
+   - `doi` in the DOI/URL-inclusive variant only;
+   - `url` in the DOI/URL-inclusive variant only;
    - `note` for nonstandard records when useful.
 5. Copy `DOI` only from the verified CSV. Never add a rejected or unverified DOI.
 6. Use `Official URL` as `url`; fall back to `DOI URL`.
@@ -327,8 +334,16 @@ In addition to the verified CSV, generate a corrected `.bib` file by default.
     - every generated DOI exists in the CSV and passed title matching.
     - every generated conference entry copies its verified `address` from the CSV.
     - every arXiv-only entry has canonical `journal = {arXiv preprint arXiv:ARXIV_ID}` and no `eprint` or `archivePrefix` field.
+    - both variants contain the same entries, keys, titles, order, and non-DOI/URL fields;
+    - the DOI/URL-free variant contains no `doi` or `url` field.
 
-Use `scripts/csv_to_bibtex.py` for deterministic conversion when available.
+Use the converter with both output paths:
+
+```bash
+python3 scripts/csv_to_bibtex.py verified.csv \
+  corrected_with_doi_url.bib corrected_without_doi_url.bib
+```
+
 The converter must stop with an error when a conference row has no verified `address`; resolve or explicitly report the blocker instead of silently emitting an incomplete conference entry.
 The converter must also stop when venue-name verification is unresolved, a `Venue ID` is missing, or a `Venue ID` maps to inconsistent journal or conference names.
 
@@ -337,8 +352,9 @@ The converter must also stop when venue-name verification is unresolved, a `Venu
 Return all of the following:
 
 1. verified UTF-8 BOM CSV;
-2. corrected BibTeX file;
-3. audit report when unresolved or corrected records exist.
+2. corrected BibTeX with verified DOI and URL fields;
+3. corrected BibTeX without DOI and URL fields;
+4. audit report when unresolved or corrected records exist.
 
 
 ## Uncertain-reference marking
@@ -369,9 +385,10 @@ Do not mark a reference uncertain merely because it legitimately has no DOI or n
 Return:
 
 1. verified UTF-8 BOM CSV with review-marker columns;
-2. corrected BibTeX file;
-3. formatted XLSX with uncertain rows highlighted yellow;
-4. audit report when corrections or unresolved records exist.
+2. corrected BibTeX with verified DOI and URL fields;
+3. corrected BibTeX without DOI and URL fields;
+4. formatted XLSX with uncertain rows highlighted yellow;
+5. audit report when corrections or unresolved records exist.
 
 
 ## Formal-venue claim continuation rule

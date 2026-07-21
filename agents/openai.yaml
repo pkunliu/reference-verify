@@ -1,4 +1,4 @@
 interface:
   display_name: "Reference Verify"
   short_description: "Verify academic references with strict source checks"
-  default_prompt: "Use $reference-verify to audit this bibliography against official publication sources."
+  default_prompt: "Use $reference-verify to audit this bibliography against official publication sources and return BibTeX variants with and without DOI/URL fields."

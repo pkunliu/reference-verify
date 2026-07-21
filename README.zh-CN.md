@@ -14,7 +14,7 @@
 - 区分连续页码、eLocator、ACM 文章号和 PDF 内部页码。
 - 核验会议论文的 `address`，不猜测会议地点。
 - 对同一期刊或会议使用统一的规范名称。
-- 默认生成经核验的 CSV、修正后的 BibTeX、高亮待复核条目的 XLSX，以及必要的审计报告。
+- 默认生成两份修正后的 BibTeX（一份包含经核验的 DOI/URL，一份不含 DOI/URL），以及经核验的 CSV、高亮待复核条目的 XLSX 和必要的审计报告。
 
 ## 安装
 
@@ -61,6 +61,11 @@ git clone https://github.com/pkunliu/reference-verify.git ~/.codex/skills/refere
 使用 $reference-verify 检查这份 BibTeX 中同一期刊或会议的名称是否统一，
 并为每篇会议论文核实 address。
 ```
+
+### 同时生成两份 BibTeX
+
+默认工作流输出 `*_with_doi_url.bib` 和 `*_without_doi_url.bib`。两份文件
+除后一份完全省略 `doi` 与 `url` 字段外，其余内容保持一致。
 
 ## 核验原则
 
