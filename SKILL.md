@@ -1,6 +1,6 @@
 ---
 name: reference-verify
-description: Strictly verify academic references, formal publication sources, canonical journal and conference names, conference locations, page ranges, published versions of preprints, and DOI-title consistency. Use for BibTeX or reference audits that must preserve every input title exactly, use one consistent name for each venue, require an address for each conference paper, and export ordered CSV, XLSX, plus corrected BibTeX variants with and without DOI/URL fields.
+description: Strictly verify academic references, formal publication sources, canonical venue names, conference locations, page ranges, published versions of preprints, DOI-title consistency, author-name order, minimal BibTeX bracing, and deterministic field order. Use for BibTeX or reference audits that must preserve title wording, standardize personal authors as Family, Given, require conference addresses, and export ordered CSV, XLSX, plus corrected BibTeX variants with and without DOI/URL fields.
 ---
 
 # Reference Verify
@@ -35,6 +35,9 @@ Use this skill whenever the user asks to:
 14. Use exactly one verified canonical `journal` or `booktitle` spelling for every shared venue identity across the complete input.
 15. Represent an arXiv-only record with `journal = {arXiv preprint arXiv:ARXIV_ID}`, `eprint = {ARXIV_ID}`, and `archivePrefix = {arXiv}`. Omit `eprint` and `archivePrefix` from formally published records.
 16. Generate both DOI/URL-inclusive and DOI/URL-free corrected BibTeX variants by default.
+17. Normalize every personal author to BibTeX `Family, Given` form while preserving the official author sequence. Never mix `Family, Given` and `Given Family` personal-name forms in one output collection.
+18. Minimize BibTeX braces. Keep only the outer field-value delimiter and inner braces required to protect case-sensitive acronyms, branded names, mathematical expressions, or corporate authors. Never wrap an entire multiword title in an additional brace pair.
+19. Emit applicable BibTeX fields in one deterministic order across the complete output. Do not preserve arbitrary source-field ordering.
 
 ## Accepted inputs
 
@@ -46,9 +49,6 @@ Use this skill whenever the user asks to:
 If the input is a spreadsheet, preserve the original row order.
 
 ## Verification source priority
-
-Read `references/source-and-doi-rules.md` before resolving venue-specific
-source, DOI, pagination, conference-address, or canonical-name questions.
 
 Use the highest available source:
 
@@ -195,6 +195,17 @@ If the official title differs only by capitalization or typography, keep the inp
 
 If the official title differs substantively, keep the input title, do not silently replace it, and mark the record for review.
 
+### Step 8A: Normalize authors, braces, and field order
+
+Before rendering or validating corrected BibTeX, read [BibTeX output normalization](references/bibtex-output-normalization.md) completely and apply it as a mandatory part of this skill.
+
+Mandatory summary:
+
+1. Keep the CSV `Title` byte-for-byte identical to the input; brace minimization changes only rendered BibTeX grouping syntax.
+2. Render personal authors uniformly as `Family, Given`, preserve the official author sequence, verify ambiguous names before inversion, and keep corporate authors protected.
+3. Remove whole-title brace wrappers while retaining braces required for acronyms, branded capitalization, LaTeX accents, and mathematics.
+4. Sort every entry type by one global field priority. Entry type controls only which fields are present; it never changes the relative order of the fields that remain.
+
 ### Step 9: Output CSV
 
 Create a UTF-8 BOM CSV for Excel with these columns in this exact order:
@@ -267,6 +278,9 @@ Before returning the CSV:
 10. Record unresolved and ambiguous cases honestly.
 11. Every conference paper has a verified `address`, or has blank `address`, `Address verification = unresolved`, and `Needs review = YES`.
 12. Every row with `journal` or `booktitle` has a `Venue ID`, and each `Venue ID` maps to exactly one entry kind and one byte-for-byte identical canonical venue name.
+13. Every personal author uses `Family, Given`; corporate authors remain protected literals; no output collection mixes personal-name order conventions.
+14. No title has a redundant whole-title brace wrapper, and every case-sensitive token that requires protection remains protected.
+15. Every BibTeX entry follows the deterministic field priority defined in Step 8A.
 
 ## Progress updates
 
@@ -299,24 +313,13 @@ between the two variants.
 2. Preserve:
    - original row order;
    - BibTeX key;
-   - complete author string;
+   - complete author identity and official author sequence, while normalizing personal names to `Family, Given`;
    - exact input title.
 3. Select the entry type from verified metadata:
    - non-empty `journal` → `@article`;
    - non-empty `booktitle` → `@inproceedings`;
    - otherwise retain a valid original type such as `@misc` or `@techreport`.
-4. Write only applicable fields, in this order:
-   - `author`;
-   - `title`;
-   - `journal` or `booktitle`;
-   - `address` for conference papers;
-   - `volume`;
-   - `number`;
-   - `pages`;
-   - `year`;
-   - `doi` in the DOI/URL-inclusive variant only;
-   - `url` in the DOI/URL-inclusive variant only;
-   - `note` for nonstandard records when useful.
+4. Write only applicable fields and follow the exact global priority in Step 8A for every `@article`, `@inproceedings`, `@book`, `@misc`, `@techreport`, and other retained entry type. Skip inapplicable fields without reordering the remaining fields.
 5. Copy `DOI` only from the verified CSV. Never add a rejected or unverified DOI.
 6. Use `Official URL` as `url`; fall back to `DOI URL`.
 7. For an arXiv-only record, use `@article` and write:
@@ -335,6 +338,9 @@ between the two variants.
     - every generated title is byte-for-byte identical to the CSV `Title`;
     - every generated DOI exists in the CSV and passed title matching.
     - every generated conference entry copies its verified `address` from the CSV.
+    - every personal author is rendered as `Family, Given`, official author order is unchanged, corporate authors remain protected, and personal-name order conventions are not mixed;
+    - title wording and capitalization are unchanged while redundant whole-title brace pairs are absent and necessary acronym/case protection remains;
+    - every entry's actual field-name sequence follows the Step 8A priority exactly;
     - every arXiv-only entry has canonical `journal = {arXiv preprint arXiv:ARXIV_ID}`, matching `eprint = {ARXIV_ID}`, and `archivePrefix = {arXiv}`;
     - no formally published entry contains `eprint`, `archivePrefix`, or `archiveprefix`.
     - both variants contain the same entries, keys, titles, order, and non-DOI/URL fields;

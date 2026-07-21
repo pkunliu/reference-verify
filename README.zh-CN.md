@@ -14,6 +14,9 @@
 - 区分连续页码、eLocator、ACM 文章号和 PDF 内部页码。
 - 核验会议论文的 `address`，不猜测会议地点。
 - 对同一期刊或会议使用统一的规范名称。
+- 将个人作者统一为 `Family, Given`，同时保持官方作者顺序不变。
+- 删除冗余的 BibTeX 标题整体括号，同时保留大小写敏感词和 LaTeX 语法所需括号。
+- 对所有条目类型按同一个确定性字段顺序输出适用字段。
 - 默认生成两份修正后的 BibTeX（一份包含经核验的 DOI/URL，一份不含 DOI/URL），以及经核验的 CSV、高亮待复核条目的 XLSX 和必要的审计报告。
 
 ## 安装
@@ -85,9 +88,10 @@ reference-verify/
 ├── agents/
 │   └── openai.yaml
 ├── references/
+│   ├── bibtex-output-normalization.md
 │   └── source-and-doi-rules.md
 └── scripts/
     └── csv_to_bibtex.py
 ```
 
-`SKILL.md` 定义完整核验流程；`references/` 保存出版源、DOI、页码和会议地址规则；`scripts/` 提供可重复的确定性转换工具。
+`SKILL.md` 定义完整核验流程；`references/` 保存出版源、DOI、页码、会议地址及 BibTeX 规范化规则；`scripts/` 提供可重复的确定性转换工具。
