@@ -9,6 +9,7 @@
 - 保留原始论文标题、BibTeX key 和条目顺序。
 - 优先核对出版社、官方会议论文集、DOI 落地页等一手来源。
 - 检查 arXiv、OpenReview 或 workshop 论文是否已有正式出版版本。
+- 将纯 arXiv 论文导出为 `journal = {arXiv preprint arXiv:编号}`，不使用 `eprint` 或 `archivePrefix` 字段。
 - 只在 DOI 注册标题与输入标题一致时接受 DOI。
 - 区分连续页码、eLocator、ACM 文章号和 PDF 内部页码。
 - 核验会议论文的 `address`，不猜测会议地点。

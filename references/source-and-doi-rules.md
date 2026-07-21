@@ -15,6 +15,10 @@
 - TMLR: OpenReview/TMLR.
 - RSS: official Robotics: Science and Systems proceedings.
 - arXiv: only for the preprint record or when no formal publication exists.
+- Export an arXiv-only record as an `@article` whose publication field is
+  `journal = {arXiv preprint arXiv:ARXIV_ID}`. Do not export `eprint`,
+  `archivePrefix`, or `archiveprefix`. For a formally published record, keep
+  the verified formal venue and omit these arXiv export fields.
 
 ## DOI rejection conditions
 

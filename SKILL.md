@@ -33,6 +33,7 @@ Use this skill whenever the user asks to:
 12. Unresolved items must remain unresolved; never guess.
 13. Every verified conference paper must include a verified `address`; do not invent a location from the venue name or year.
 14. Use exactly one verified canonical `journal` or `booktitle` spelling for every shared venue identity across the complete input.
+15. Represent an arXiv-only record as `journal = {arXiv preprint arXiv:ARXIV_ID}`; do not emit `eprint` or `archivePrefix` fields.
 
 ## Accepted inputs
 
@@ -307,17 +308,15 @@ In addition to the verified CSV, generate a corrected `.bib` file by default.
    - `pages`;
    - `year`;
    - `doi`;
-   - `eprint`;
-   - `archivePrefix`;
    - `url`;
    - `note` for nonstandard records when useful.
 5. Copy `DOI` only from the verified CSV. Never add a rejected or unverified DOI.
 6. Use `Official URL` as `url`; fall back to `DOI URL`.
-7. For arXiv records, write:
+7. For an arXiv-only record, use `@article` and write:
    ```bibtex
-   eprint        = {ARXIV_ID},
-   archivePrefix = {arXiv},
+   journal       = {arXiv preprint arXiv:ARXIV_ID},
    ```
+   Never emit `eprint`, `archivePrefix`, or `archiveprefix`. When a record has a verified formal journal or conference version, retain the formal venue and omit the arXiv export fields.
 8. Normalize only page-range punctuation to BibTeX `--`. Do not change title wording or capitalization.
 9. Do not copy audit-only columns such as verification notes into normal academic entries.
 10. Validate before delivery:
@@ -327,6 +326,7 @@ In addition to the verified CSV, generate a corrected `.bib` file by default.
     - every generated title is byte-for-byte identical to the CSV `Title`;
     - every generated DOI exists in the CSV and passed title matching.
     - every generated conference entry copies its verified `address` from the CSV.
+    - every arXiv-only entry has canonical `journal = {arXiv preprint arXiv:ARXIV_ID}` and no `eprint` or `archivePrefix` field.
 
 Use `scripts/csv_to_bibtex.py` for deterministic conversion when available.
 The converter must stop with an error when a conference row has no verified `address`; resolve or explicitly report the blocker instead of silently emitting an incomplete conference entry.

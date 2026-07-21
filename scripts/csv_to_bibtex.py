@@ -23,8 +23,30 @@ def normalize_pages(value: str) -> str:
     return re.sub(r"-{3,}", "--", value)
 
 
+def normalize_arxiv_id(value: str | None) -> str:
+    value = clean(value)
+    value = re.sub(r"^https?://arxiv\.org/(?:abs|pdf)/", "", value, flags=re.I)
+    value = re.sub(r"\.pdf$", "", value, flags=re.I)
+    return re.sub(r"^arXiv\s*:\s*", "", value, flags=re.I)
+
+
+def is_arxiv_journal(value: str) -> bool:
+    normalized = value.replace(r"ar\relax Xiv", "arXiv")
+    return bool(re.match(r"^arXiv(?:\s+preprint)?(?:\s+arXiv\s*:.*)?$", normalized, re.I))
+
+
+def effective_journal(row: dict[str, str]) -> str:
+    journal = clean(row.get("journal"))
+    booktitle = clean(row.get("booktitle"))
+    arxiv_id = normalize_arxiv_id(row.get("arXiv ID"))
+
+    if arxiv_id and not booktitle and (not journal or is_arxiv_journal(journal)):
+        return f"arXiv preprint arXiv:{arxiv_id}"
+    return journal
+
+
 def choose_entry_type(row: dict[str, str]) -> str:
-    if clean(row.get("journal")):
+    if effective_journal(row):
         return "article"
     if clean(row.get("booktitle")):
         return "inproceedings"
@@ -44,7 +66,7 @@ def validate_venue_consistency(rows: list[dict[str, str]]) -> None:
 
     for row in rows:
         key = clean(row.get("Key"))
-        journal = clean(row.get("journal"))
+        journal = effective_journal(row)
         booktitle = clean(row.get("booktitle"))
 
         if journal and booktitle:
@@ -85,7 +107,7 @@ def convert_row(row: dict[str, str]) -> str:
 
     add_field(lines, "author", clean(row.get("Authors")))
     add_field(lines, "title", clean(row.get("Title")))
-    add_field(lines, "journal", clean(row.get("journal")))
+    add_field(lines, "journal", effective_journal(row))
     add_field(lines, "booktitle", clean(row.get("booktitle")))
     address = clean(row.get("address"))
     if entry_type == "inproceedings" and not address:
@@ -101,13 +123,6 @@ def convert_row(row: dict[str, str]) -> str:
 
     # The verifier only populates this field after DOI-title matching.
     add_field(lines, "doi", clean(row.get("DOI")))
-
-    arxiv_id = re.sub(
-        r"^arXiv\s*:\s*", "", clean(row.get("arXiv ID")), flags=re.I
-    )
-    if arxiv_id:
-        add_field(lines, "eprint", arxiv_id)
-        add_field(lines, "archivePrefix", "arXiv")
 
     add_field(
         lines,
@@ -144,6 +159,8 @@ def main() -> None:
     args.bib_file.write_text("\n\n".join(entries) + "\n", encoding="utf-8")
 
     output = args.bib_file.read_text(encoding="utf-8")
+    if re.search(r"^\s*(?:eprint|archiveprefix)\s*=", output, flags=re.I | re.M):
+        raise SystemExit("Generated BibTeX contains forbidden arXiv export fields.")
     generated_keys = re.findall(r"^@\w+\{([^,]+),", output, flags=re.M)
     if generated_keys != keys:
         raise SystemExit("Generated BibTeX order does not match CSV order.")

@@ -9,6 +9,7 @@
 - Preserve original paper titles, BibTeX keys, and entry order.
 - Prefer primary sources such as publisher records, official proceedings, and DOI landing pages.
 - Check whether arXiv, OpenReview, or workshop papers have formal published versions.
+- Export arXiv-only papers as `journal = {arXiv preprint arXiv:ID}` without `eprint` or `archivePrefix` fields.
 - Accept a DOI only when its registered title matches the supplied title.
 - Distinguish continuous page ranges, eLocators, ACM article numbers, and PDF-local pages.
 - Verify conference `address` fields without guessing event locations.
