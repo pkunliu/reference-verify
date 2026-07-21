@@ -35,10 +35,19 @@ def is_arxiv_journal(value: str) -> bool:
     return bool(re.match(r"^arXiv(?:\s+preprint)?(?:\s+arXiv\s*:.*)?$", normalized, re.I))
 
 
+def effective_arxiv_id(row: dict[str, str]) -> str:
+    arxiv_id = normalize_arxiv_id(row.get("arXiv ID"))
+    if arxiv_id:
+        return arxiv_id
+    journal = clean(row.get("journal")).replace(r"ar\relax Xiv", "arXiv")
+    match = re.match(r"^arXiv(?:\s+preprint)?\s+arXiv\s*:\s*(\S+)\s*$", journal, re.I)
+    return normalize_arxiv_id(match.group(1)) if match else ""
+
+
 def effective_journal(row: dict[str, str]) -> str:
     journal = clean(row.get("journal"))
     booktitle = clean(row.get("booktitle"))
-    arxiv_id = normalize_arxiv_id(row.get("arXiv ID"))
+    arxiv_id = effective_arxiv_id(row)
 
     if arxiv_id and not booktitle and (not journal or is_arxiv_journal(journal)):
         return f"arXiv preprint arXiv:{arxiv_id}"
@@ -107,8 +116,10 @@ def convert_row(row: dict[str, str], include_doi_url: bool) -> str:
 
     add_field(lines, "author", clean(row.get("Authors")))
     add_field(lines, "title", clean(row.get("Title")))
-    add_field(lines, "journal", effective_journal(row))
-    add_field(lines, "booktitle", clean(row.get("booktitle")))
+    journal = effective_journal(row)
+    booktitle = clean(row.get("booktitle"))
+    add_field(lines, "journal", journal)
+    add_field(lines, "booktitle", booktitle)
     address = clean(row.get("address"))
     if entry_type == "inproceedings" and not address:
         raise SystemExit(
@@ -120,6 +131,11 @@ def convert_row(row: dict[str, str], include_doi_url: bool) -> str:
     add_field(lines, "number", clean(row.get("number")))
     add_field(lines, "pages", normalize_pages(row.get("pages", "")))
     add_field(lines, "year", clean(row.get("year")) or clean(row.get("Original year")))
+
+    arxiv_id = effective_arxiv_id(row)
+    if arxiv_id and not booktitle and is_arxiv_journal(journal):
+        add_field(lines, "eprint", arxiv_id)
+        add_field(lines, "archivePrefix", "arXiv")
 
     if include_doi_url:
         # The verifier only populates this field after DOI-title matching.
@@ -144,8 +160,6 @@ def validate_output(
     keys: list[str],
     include_doi_url: bool,
 ) -> None:
-    if re.search(r"^\s*(?:eprint|archiveprefix)\s*=", output, flags=re.I | re.M):
-        raise SystemExit("Generated BibTeX contains forbidden arXiv export fields.")
     if not include_doi_url and re.search(
         r"^\s*(?:doi|url)\s*=", output, flags=re.I | re.M
     ):
@@ -159,6 +173,21 @@ def validate_output(
         exact_title = f"title         = {{{row['Title']}}},"
         if exact_title not in entry:
             raise SystemExit(f"Title preservation failed for {row['Key']}.")
+        journal = effective_journal(row)
+        booktitle = clean(row.get("booktitle"))
+        arxiv_id = effective_arxiv_id(row)
+        is_pure_arxiv = bool(
+            arxiv_id and not booktitle and is_arxiv_journal(journal)
+        )
+        if is_pure_arxiv:
+            if f"eprint        = {{{arxiv_id}}}," not in entry:
+                raise SystemExit(f"Missing or mismatched eprint for {row['Key']}.")
+            if "archivePrefix = {arXiv}," not in entry:
+                raise SystemExit(f"Missing archivePrefix for {row['Key']}.")
+        elif re.search(r"^\s*(?:eprint|archiveprefix)\s*=", entry, flags=re.I | re.M):
+            raise SystemExit(
+                f"Formally published entry {row['Key']} contains arXiv export fields."
+            )
 
 
 def main() -> None:

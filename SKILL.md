@@ -33,7 +33,7 @@ Use this skill whenever the user asks to:
 12. Unresolved items must remain unresolved; never guess.
 13. Every verified conference paper must include a verified `address`; do not invent a location from the venue name or year.
 14. Use exactly one verified canonical `journal` or `booktitle` spelling for every shared venue identity across the complete input.
-15. Represent an arXiv-only record as `journal = {arXiv preprint arXiv:ARXIV_ID}`; do not emit `eprint` or `archivePrefix` fields.
+15. Represent an arXiv-only record with `journal = {arXiv preprint arXiv:ARXIV_ID}`, `eprint = {ARXIV_ID}`, and `archivePrefix = {arXiv}`. Omit `eprint` and `archivePrefix` from formally published records.
 16. Generate both DOI/URL-inclusive and DOI/URL-free corrected BibTeX variants by default.
 
 ## Accepted inputs
@@ -322,8 +322,10 @@ between the two variants.
 7. For an arXiv-only record, use `@article` and write:
    ```bibtex
    journal       = {arXiv preprint arXiv:ARXIV_ID},
+   eprint        = {ARXIV_ID},
+   archivePrefix = {arXiv},
    ```
-   Never emit `eprint`, `archivePrefix`, or `archiveprefix`. When a record has a verified formal journal or conference version, retain the formal venue and omit the arXiv export fields.
+   Use canonical `archivePrefix` capitalization. When a record has a verified formal journal or conference version, retain the formal venue and omit `eprint`, `archivePrefix`, and `archiveprefix`.
 8. Normalize only page-range punctuation to BibTeX `--`. Do not change title wording or capitalization.
 9. Do not copy audit-only columns such as verification notes into normal academic entries.
 10. Validate before delivery:
@@ -333,7 +335,8 @@ between the two variants.
     - every generated title is byte-for-byte identical to the CSV `Title`;
     - every generated DOI exists in the CSV and passed title matching.
     - every generated conference entry copies its verified `address` from the CSV.
-    - every arXiv-only entry has canonical `journal = {arXiv preprint arXiv:ARXIV_ID}` and no `eprint` or `archivePrefix` field.
+    - every arXiv-only entry has canonical `journal = {arXiv preprint arXiv:ARXIV_ID}`, matching `eprint = {ARXIV_ID}`, and `archivePrefix = {arXiv}`;
+    - no formally published entry contains `eprint`, `archivePrefix`, or `archiveprefix`.
     - both variants contain the same entries, keys, titles, order, and non-DOI/URL fields;
     - the DOI/URL-free variant contains no `doi` or `url` field.
 
