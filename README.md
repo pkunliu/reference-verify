@@ -14,6 +14,9 @@
 - Distinguish continuous page ranges, eLocators, ACM article numbers, and PDF-local pages.
 - Verify conference `address` fields without guessing event locations.
 - Apply one canonical name to every occurrence of the same journal or conference.
+- Normalize personal authors to `Family, Given` without changing the official author sequence.
+- Minimize redundant BibTeX title braces while preserving case-sensitive tokens and LaTeX syntax.
+- Emit applicable fields in one deterministic order across every entry type.
 - Produce two corrected BibTeX variants—one with verified DOI/URL fields and one without them—plus a verified CSV, highlighted XLSX, and audit report when needed.
 
 ## Installation
@@ -89,9 +92,10 @@ reference-verify/
 ├── agents/
 │   └── openai.yaml
 ├── references/
+│   ├── bibtex-output-normalization.md
 │   └── source-and-doi-rules.md
 └── scripts/
     └── csv_to_bibtex.py
 ```
 
-`SKILL.md` defines the complete verification workflow. `references/` contains source, DOI, pagination, conference-location, and venue-name rules. `scripts/` provides deterministic conversion utilities.
+`SKILL.md` defines the complete verification workflow. `references/` contains source, DOI, pagination, conference-location, venue-name, and BibTeX normalization rules. `scripts/` provides deterministic conversion utilities.
